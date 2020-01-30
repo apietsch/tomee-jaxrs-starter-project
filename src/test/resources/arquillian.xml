@@ -21,6 +21,16 @@ If this file is deleted the default Tomcat 8080 port is used
       <property name="httpPort">-1</property>
       <property name="stopPort">-1</property>
       <property name="ajpPort">-1</property>
+
+      <property name="properties">
+        fooDS = new://Resource?type=DataSource
+        fooDS.JdbcDriver = org.hsqldb.jdbcDriver
+        fooDS.JdbcUrl = jdbc:hsqldb:mem:arquillian
+        fooDS.UserName = sa
+        fooDS.Password =
+        fooDS.JtaManaged = true
+        fooDS.LogSql = true
+      </property>
     </configuration>
   </container>
 </arquillian>
