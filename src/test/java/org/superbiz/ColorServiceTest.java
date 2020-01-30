@@ -63,7 +63,7 @@ public class ColorServiceTest extends Assert {
     public static WebArchive createDeployment() {
         return ShrinkWrap.create(WebArchive.class)
                 .addAsManifestResource("test-persistence.xml", "persistence.xml")
-                .addClasses(ColorService.class, Color.class, MyEntity.class);
+                .addClasses(RESTConfiguration.class, ColorService.class, Color.class, MyEntity.class);
     }
 
     /**
@@ -85,7 +85,8 @@ public class ColorServiceTest extends Assert {
         // POST
         {
             final WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
-            final Response response = webTarget.path("color/green").request().post(null);
+            System.out.println("-------> " + webTarget.getUri().toString());
+            final Response response = webTarget.path("api/color/green").request().post(null);
 
             assertEquals(204, response.getStatus());
         }
@@ -93,7 +94,7 @@ public class ColorServiceTest extends Assert {
         // GET
         {
             final WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
-            final Response response = webTarget.path("color").request().get();
+            final Response response = webTarget.path("api/color").request().get();
 
             assertEquals(200, response.getStatus());
 
@@ -109,7 +110,7 @@ public class ColorServiceTest extends Assert {
 
         final WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
 
-        final Color color = webTarget.path("color/object").request()
+        final Color color = webTarget.path("api/color/object").request()
                 .accept(MediaType.APPLICATION_JSON)
                 .get(Color.class);
 
@@ -119,5 +120,4 @@ public class ColorServiceTest extends Assert {
         assertEquals(0x71, color.getG());
         assertEquals(0x00, color.getB());
     }
-
 }
