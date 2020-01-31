@@ -14,12 +14,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.superbiz;
+package be.pengo.tomeeapi;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,6 +33,8 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URL;
+import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Arquillian will start the container, deploy all @Deployment bundles, then run all the @Test methods.
@@ -63,7 +66,8 @@ public class ColorServiceTest extends Assert {
     public static WebArchive createDeployment() {
         return ShrinkWrap.create(WebArchive.class)
                 .addAsManifestResource("test-persistence.xml", "persistence.xml")
-                .addClasses(RESTConfiguration.class, ColorService.class, Color.class, MyEntity.class);
+                .addPackages(true, new String[]{"be.pengo.tomeeapi"})
+                .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
     }
 
     /**
@@ -104,6 +108,21 @@ public class ColorServiceTest extends Assert {
         }
 
     }
+
+    @Test
+    public void testDemo() throws Exception {
+        // doing the get
+        WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
+        Instant start = Instant.now();
+        Response response = webTarget.path("api/demo").request().get();
+        Instant stop = Instant.now();
+        long duruation = Duration.between(start, stop).toMillis();
+        System.out.println("the rest call took " + duruation/1000 + " seconds in total to receive a response" );
+        assertEquals("iAmTakingVeryLong", response.readEntity(String.class));
+    }
+
+    
+    
 
     @Test
     public void getColorObject() throws Exception {

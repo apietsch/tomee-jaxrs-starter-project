@@ -1,4 +1,4 @@
-package org.superbiz;
+package be.pengo.tomeeapi;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

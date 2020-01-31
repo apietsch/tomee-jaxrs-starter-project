@@ -68,6 +68,30 @@
       <version>1.4.196</version>
       <scope>runtime</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.arquillian.universe</groupId>
+      <artifactId>arquillian-persistence</artifactId>
+      <version>1.5.0.0</version>
+      <scope>test</scope>
+      <type>pom</type>
+    </dependency>
+
+    <dependency>
+      <groupId>org.arquillian.universe</groupId>
+      <artifactId>arquillian-transaction-jta</artifactId>
+      <version>1.5.0.0</version>
+      <scope>test</scope>
+      <type>pom</type>
+      <exclusions>
+        <exclusion>
+          <groupId>org.jboss.arquillian.extension</groupId>
+          <artifactId>arquillian-transaction-jta</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    
+    
   </dependencies>
 
   <build>
