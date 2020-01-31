@@ -16,6 +16,8 @@
  */
 package be.pengo.tomeeapi;
 
+import org.codehaus.jackson.JsonProcessingException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -32,9 +34,12 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Arquillian will start the container, deploy all @Deployment bundles, then run all the @Test methods.
@@ -116,9 +121,27 @@ public class ColorServiceTest extends Assert {
         Instant start = Instant.now();
         Response response = webTarget.path("api/demo").request().get();
         Instant stop = Instant.now();
-        long duruation = Duration.between(start, stop).toMillis();
-        System.out.println("the rest call took " + duruation/1000 + " seconds in total to receive a response" );
+        long duration = Duration.between(start, stop).toMillis();
+        System.out.println("the rest call took " + duration/1000 + " seconds in total to receive a response" );
         assertEquals("iAmTakingVeryLong", response.readEntity(String.class));
+    }
+
+
+    @Test
+    public void convertMapToJson() throws IOException {
+        Map<String, String> elements = new HashMap();
+        elements.put("Key1", "Value1");
+        elements.put("Key2", "Value2");
+        elements.put("Key3", "Value3");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        try {
+            String json = objectMapper.writeValueAsString(elements);
+            System.out.println("json = " + json);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
     }
 
     

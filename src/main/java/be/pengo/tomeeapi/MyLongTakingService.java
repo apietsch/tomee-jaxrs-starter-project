@@ -1,12 +1,22 @@
 package be.pengo.tomeeapi;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.json.JSONObject;
+
 import javax.ejb.Stateless;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.xml.ws.WebServiceClient;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
@@ -16,17 +26,54 @@ import static java.util.concurrent.CompletableFuture.supplyAsync;
 @Path("/demo")
 @Stateless
 public class MyLongTakingService {
+    
     @GET
-    public Response iAmTakingVeryLong() {
-        System.out.println("Start rs method: " + Thread.currentThread().getName());
-        getResultOverNetwork();
-        Instant start = Instant.now();
-        doCompletableFutureStuff();
-        Instant stop = Instant.now();
-        long runtime = Duration.between(start, stop).toMillis();
-        System.out.println("doStuff took " + runtime / 1000 + " seconds to complete");
-        System.out.println("Processing is over, return response.");
+    public Response iAmTakingVeryLong() throws JsonProcessingException {
+        String baseUrl = "http://jsonplaceholder.typicode.com";
+        String path = "users/1";
+        queryRestService(baseUrl, path);
+//        System.out.println("Start rs method: " + Thread.currentThread().getName());
+//        getResultOverNetwork();
+//        Instant start = Instant.now();
+//        doCompletableFutureStuff();
+//        Instant stop = Instant.now();
+//        long runtime = Duration.between(start, stop).toMillis();
+//        System.out.println("doStuff took " + runtime / 1000 + " seconds to complete");
+//        System.out.println("Processing is over, return response.");
         return Response.ok().entity("iAmTakingVeryLong").build();
+    }
+    
+    private JSONObject queryRestService(String baseUrl, String path) throws JsonProcessingException {
+        
+        WebTarget target = ClientBuilder.newClient().target(baseUrl);
+        Response response = target.path(path).request().accept(MediaType.APPLICATION_JSON).get();
+        
+        String entity = response.readEntity(String.class);
+        System.out.println("response:");
+        System.out.println(entity);
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, String> map = mapper.readValue(entity, Map.class);
+        System.out.println("As Map:");
+        System.out.println(map);
+
+        Map<String, Object> jsonMap = mapper.readValue(entity,
+                new TypeReference<Map<String,Object>>(){});
+        System.out.println("jsonMap:");
+        System.out.println(jsonMap);
+        // convert map to JSON string
+        String json = mapper.writeValueAsString(map);
+        System.out.println("Map to JSON: ");
+        System.out.println(json);   // compact-print
+        json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+        System.out.println("Pretty printed:");
+        System.out.println(json);   // pretty-print
+
+        JSONObject jsonObject =new JSONObject(entity);
+        System.out.println("jsonObject:");
+        System.out.println(jsonObject);
+        
+        return jsonObject; 
+        
     }
 
     private void doCompletableFutureStuff() {
@@ -44,7 +91,6 @@ public class MyLongTakingService {
         );
         future.join();
     }
-
 
     public Future<String> getResultOverNetwork() {
         CompletableFuture<String> future = new CompletableFuture<>();
