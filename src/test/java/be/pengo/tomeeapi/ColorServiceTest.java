@@ -18,6 +18,7 @@ package be.pengo.tomeeapi;
 
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.hamcrest.CoreMatchers;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -88,10 +89,34 @@ public class ColorServiceTest extends Assert {
     @ArquillianResource
     private URL webappUrl;
 
+    @Test
+    public void testAsynService() throws Exception {
+        WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
+        Instant start = Instant.now();
+        Response response = webTarget.path("api/async/long_taking_service").request().get();
+        Instant stop = Instant.now();
+        long duration = Duration.between(start, stop).toMillis();
+        assertTrue(duration > 25000);
+        String readEntity = response.readEntity(String.class);
+        assertThat(readEntity, CoreMatchers.containsString("end long processing in"));
+    }
+
+    @Test
+    public void testAuthorContentJsonResponse() throws URISyntaxException {
+        AuthorContent authorContent = getResponse("api/async/content/1", AuthorContent.class);
+        assertNotNull(authorContent);
+    }
+
+    @Test
+    public void testAuthorContentAttributeOrderFromJSONResponse() throws URISyntaxException {
+        Response response = getResponse("api/async/content/1");
+        String readEntity = response.readEntity(String.class);
+        assertEquals("{\"author_id\":1,\"author_detail\":{\"id\":1,\"name\":\"Leanne Graham\",\"username\":\"Bret\",\"email\":\"Sincere@april.biz\",\"address\":{\"street\":\"Kulas Light\",\"suite\":\"Apt. 556\",\"city\":\"Gwenborough\",\"zipcode\":\"92998-3874\",\"geo\":{\"lat\":\"-37.3159\",\"lng\":\"81.1496\"}},\"phone\":\"1-770-736-8031 x56442\",\"website\":\"hildegard.org\",\"company\":{\"name\":\"Romaguera-Crona\",\"catchPhrase\":\"Multi-layered client-server neural-net\",\"bs\":\"harness real-time e-markets\"}},\"author_posts\":[{\"userId\":1,\"id\":1,\"title\":\"sunt aut facere repellat provident occaecati excepturi optio reprehenderit\",\"body\":\"quia et suscipit\\nsuscipit recusandae consequuntur expedita et cum\\nreprehenderit molestiae ut ut quas totam\\nnostrum rerum est autem sunt rem eveniet architecto\"},{\"userId\":1,\"id\":2,\"title\":\"qui est esse\",\"body\":\"est rerum tempore vitae\\nsequi sint nihil reprehenderit dolor beatae ea dolores neque\\nfugiat blanditiis voluptate porro vel nihil molestiae ut reiciendis\\nqui aperiam non debitis possimus qui neque nisi nulla\"},{\"userId\":1,\"id\":3,\"title\":\"ea molestias quasi exercitationem repellat qui ipsa sit aut\",\"body\":\"et iusto sed quo iure\\nvoluptatem occaecati omnis eligendi aut ad\\nvoluptatem doloribus vel accusantium quis pariatur\\nmolestiae porro eius odio et labore et velit aut\"},{\"userId\":1,\"id\":4,\"title\":\"eum et est occaecati\",\"body\":\"ullam et saepe reiciendis voluptatem adipisci\\nsit amet autem assumenda provident rerum culpa\\nquis hic commodi nesciunt rem tenetur doloremque ipsam iure\\nquis sunt voluptatem rerum illo velit\"},{\"userId\":1,\"id\":5,\"title\":\"nesciunt quas odio\",\"body\":\"repudiandae veniam quaerat sunt sed\\nalias aut fugiat sit autem sed est\\nvoluptatem omnis possimus esse voluptatibus quis\\nest aut tenetur dolor neque\"},{\"userId\":1,\"id\":6,\"title\":\"dolorem eum magni eos aperiam quia\",\"body\":\"ut aspernatur corporis harum nihil quis provident sequi\\nmollitia nobis aliquid molestiae\\nperspiciatis et ea nemo ab reprehenderit accusantium quas\\nvoluptate dolores velit et doloremque molestiae\"},{\"userId\":1,\"id\":7,\"title\":\"magnam facilis autem\",\"body\":\"dolore placeat quibusdam ea quo vitae\\nmagni quis enim qui quis quo nemo aut saepe\\nquidem repellat excepturi ut quia\\nsunt ut sequi eos ea sed quas\"},{\"userId\":1,\"id\":8,\"title\":\"dolorem dolore est ipsam\",\"body\":\"dignissimos aperiam dolorem qui eum\\nfacilis quibusdam animi sint suscipit qui sint possimus cum\\nquaerat magni maiores excepturi\\nipsam ut commodi dolor voluptatum modi aut vitae\"},{\"userId\":1,\"id\":9,\"title\":\"nesciunt iure omnis dolorem tempora et accusantium\",\"body\":\"consectetur animi nesciunt iure dolore\\nenim quia ad\\nveniam autem ut quam aut nobis\\net est aut quod aut provident voluptas autem voluptas\"},{\"userId\":1,\"id\":10,\"title\":\"optio molestias id quia eum\",\"body\":\"quo et expedita modi cum officia vel magni\\ndoloribus qui repudiandae\\nvero nisi sit\\nquos veniam quod sed accusamus veritatis error\"}]}", readEntity);
+    }
 
     @Test
     public void postAndGet() throws Exception {
-        
+
         // POST
         {
             final WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
@@ -112,7 +137,22 @@ public class ColorServiceTest extends Assert {
 
             assertEquals("green", content);
         }
+    }
 
+    @Test
+    public void getColorObject() throws Exception {
+
+        final WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
+
+        final Color color = webTarget.path("api/color/object").request()
+                .accept(MediaType.APPLICATION_JSON)
+                .get(Color.class);
+
+        assertNotNull(color);
+        assertEquals("orange", color.getName());
+        assertEquals(0xE7, color.getR());
+        assertEquals(0x71, color.getG());
+        assertEquals(0x00, color.getB());
     }
 
     private <T> T getResponse(String path, Class<T> dtoClazz) throws URISyntaxException {
@@ -131,66 +171,4 @@ public class ColorServiceTest extends Assert {
                 get();
     }
 
-
-    @Test
-    public void testAsynService() throws Exception {
-        // doing the get
-        WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
-        Instant start = Instant.now();
-        Response response = webTarget.path("api/async/long_taking_service").request().get();
-        Instant stop = Instant.now();
-        long duration = Duration.between(start, stop).toMillis();
-        System.out.println("the rest call took " + duration/1000 + " seconds in total to receive a response" );
-        assertEquals("iAmTakingVeryLong", response.readEntity(String.class));
-    }
-
-    @Test
-    public void testJsonResponse() throws URISyntaxException {
-        AuthorContent authorContent = getResponse("api/async/content/1", AuthorContent.class);
-        assertNotNull(authorContent);
-
-        Response response = getResponse("api/async/content/1");
-        String readEntity = response.readEntity(String.class);
-        assertEquals("{\"authorDetail\":{\"id\":1,\"name\":\"Leanne Graham\",\"username\":\"Bret\",\"email\":\"Sincere@april.biz\",\"address\":{\"street\":\"Kulas Light\",\"suite\":\"Apt. 556\",\"city\":\"Gwenborough\",\"zipcode\":\"92998-3874\",\"geo\":{\"lat\":\"-37.3159\",\"lng\":\"81.1496\"}},\"phone\":\"1-770-736-8031 x56442\",\"website\":\"hildegard.org\",\"company\":{\"name\":\"Romaguera-Crona\",\"catchPhrase\":\"Multi-layered client-server neural-net\",\"bs\":\"harness real-time e-markets\"}},\"id\":1}", readEntity);
-
-        AuthorContent authorContent2 = getResponse("api/async/content/1").readEntity(AuthorContent.class);
-        assertNotNull(authorContent2);
-    }
-
-
-    @Test
-    public void convertMapToJson() throws IOException {
-        Map<String, String> elements = new HashMap();
-        elements.put("Key1", "Value1");
-        elements.put("Key2", "Value2");
-        elements.put("Key3", "Value3");
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        try {
-            String json = objectMapper.writeValueAsString(elements);
-            System.out.println("json = " + json);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-    }
-
-    
-    
-
-    @Test
-    public void getColorObject() throws Exception {
-
-        final WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
-
-        final Color color = webTarget.path("api/color/object").request()
-                .accept(MediaType.APPLICATION_JSON)
-                .get(Color.class);
-
-        assertNotNull(color);
-        assertEquals("orange", color.getName());
-        assertEquals(0xE7, color.getR());
-        assertEquals(0x71, color.getG());
-        assertEquals(0x00, color.getB());
-    }
 }
