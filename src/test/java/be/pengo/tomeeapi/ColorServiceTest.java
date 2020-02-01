@@ -35,6 +35,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
@@ -114,16 +115,46 @@ public class ColorServiceTest extends Assert {
 
     }
 
+    private <T> T getResponse(String path, Class<T> dtoClazz) throws URISyntaxException {
+        WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
+        return webTarget.path(path).
+                request().
+                accept(MediaType.APPLICATION_JSON).
+                get(dtoClazz);
+    }
+
+    private Response getResponse(String path) throws URISyntaxException {
+        WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
+        return webTarget.path(path).
+                request().
+                accept(MediaType.APPLICATION_JSON).
+                get();
+    }
+
+
     @Test
-    public void testDemo() throws Exception {
+    public void testAsynService() throws Exception {
         // doing the get
         WebTarget webTarget = ClientBuilder.newClient().target(webappUrl.toURI());
         Instant start = Instant.now();
-        Response response = webTarget.path("api/demo").request().get();
+        Response response = webTarget.path("api/async/long_taking_service").request().get();
         Instant stop = Instant.now();
         long duration = Duration.between(start, stop).toMillis();
         System.out.println("the rest call took " + duration/1000 + " seconds in total to receive a response" );
         assertEquals("iAmTakingVeryLong", response.readEntity(String.class));
+    }
+
+    @Test
+    public void testJsonResponse() throws URISyntaxException {
+        AuthorContent authorContent = getResponse("api/async/content/1", AuthorContent.class);
+        assertNotNull(authorContent);
+
+        Response response = getResponse("api/async/content/1");
+        String readEntity = response.readEntity(String.class);
+        assertEquals("{\"authorDetail\":{\"id\":1,\"name\":\"Leanne Graham\",\"username\":\"Bret\",\"email\":\"Sincere@april.biz\",\"address\":{\"street\":\"Kulas Light\",\"suite\":\"Apt. 556\",\"city\":\"Gwenborough\",\"zipcode\":\"92998-3874\",\"geo\":{\"lat\":\"-37.3159\",\"lng\":\"81.1496\"}},\"phone\":\"1-770-736-8031 x56442\",\"website\":\"hildegard.org\",\"company\":{\"name\":\"Romaguera-Crona\",\"catchPhrase\":\"Multi-layered client-server neural-net\",\"bs\":\"harness real-time e-markets\"}},\"id\":1}", readEntity);
+
+        AuthorContent authorContent2 = getResponse("api/async/content/1").readEntity(AuthorContent.class);
+        assertNotNull(authorContent2);
     }
 
 

@@ -3,16 +3,16 @@ package be.pengo.tomeeapi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.json.JSONObject;
 
 import javax.ejb.Stateless;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.xml.ws.WebServiceClient;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -22,12 +22,14 @@ import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
-@Path("/demo")
+@Path("/async")
 @Stateless
 public class MyLongTakingService {
     
     @GET
+    @Path("long_taking_service")
     public Response iAmTakingVeryLong() throws JsonProcessingException {
         String baseUrl = "http://jsonplaceholder.typicode.com";
         String path = "users/1";
@@ -42,38 +44,28 @@ public class MyLongTakingService {
 //        System.out.println("Processing is over, return response.");
         return Response.ok().entity("iAmTakingVeryLong").build();
     }
-    
-    private JSONObject queryRestService(String baseUrl, String path) throws JsonProcessingException {
-        
+
+    @GET
+    @Path("content/{AUTHOR_ID}")
+    @Produces({APPLICATION_JSON})
+    public Response getAuthorContent (@PathParam("AUTHOR_ID") Long authorId) throws JsonProcessingException {
+        String baseUrl = "http://jsonplaceholder.typicode.com";
+        String path = "users/1";
+        Map<String, Object> authorDetails = queryRestService(baseUrl, path);
+        System.out.println("authorDetails:" + authorDetails);
+        return Response.ok().entity(new AuthorContent(authorId, authorDetails)).build();
+    }
+
+
+    private Map<String, Object> queryRestService(String baseUrl, String path) throws JsonProcessingException {
         WebTarget target = ClientBuilder.newClient().target(baseUrl);
         Response response = target.path(path).request().accept(MediaType.APPLICATION_JSON).get();
-        
-        String entity = response.readEntity(String.class);
-        System.out.println("response:");
-        System.out.println(entity);
+        String asString = response.readEntity(String.class);
+        // using jackson
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> map = mapper.readValue(entity, Map.class);
-        System.out.println("As Map:");
-        System.out.println(map);
-
-        Map<String, Object> jsonMap = mapper.readValue(entity,
-                new TypeReference<Map<String,Object>>(){});
-        System.out.println("jsonMap:");
-        System.out.println(jsonMap);
-        // convert map to JSON string
-        String json = mapper.writeValueAsString(map);
-        System.out.println("Map to JSON: ");
-        System.out.println(json);   // compact-print
-        json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
-        System.out.println("Pretty printed:");
-        System.out.println(json);   // pretty-print
-
-        JSONObject jsonObject =new JSONObject(entity);
-        System.out.println("jsonObject:");
-        System.out.println(jsonObject);
-        
-        return jsonObject; 
-        
+        Map<String, Object> jsonMap = mapper.readValue(asString,
+                new TypeReference<Map<String, Object>>(){});
+        return jsonMap;
     }
 
     private void doCompletableFutureStuff() {
