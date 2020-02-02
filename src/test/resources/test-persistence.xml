@@ -4,7 +4,6 @@
 			 version="2.0">
 <persistence-unit name="myPU" transaction-type="JTA">
 	<provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
-	<class>be.pengo.tomeeapi.MyEntity</class>
 	<jta-data-source>fooDS</jta-data-source>
 	<shared-cache-mode>NONE</shared-cache-mode>
 	<properties>

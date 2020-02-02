@@ -1,8 +1,12 @@
 package be.pengo.tomeeapi;
 
+import org.apache.johnzon.mapper.Mapper;
+import org.apache.johnzon.mapper.MapperBuilder;
+import org.apache.johnzon.jsonb.JohnzonBuilder;
+
+
 import javax.ejb.Stateless;
 import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -13,9 +17,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
@@ -25,8 +27,10 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 @Path("/async")
 @Stateless
-public class MyLongTakingService {
-    
+public class AnyUserService {
+
+    private static final String HTTP_JSONPLACEHOLDER_TYPICODE_COM = "http://jsonplaceholder.typicode.com";
+
     @GET
     @Path("long_taking_service")
     @Produces({APPLICATION_JSON})
@@ -43,33 +47,49 @@ public class MyLongTakingService {
     @GET
     @Path("content/{AUTHOR_ID}")
     @Produces({APPLICATION_JSON})
-    public Response getAuthorContent (@PathParam("AUTHOR_ID") Long authorId){
-        String baseUrl = "http://jsonplaceholder.typicode.com";
-        String authorDetailPath = "users/" + authorId;
-        Map<String, Object> authorDetails = queryRestService(baseUrl, authorDetailPath);
-        String authorPostsPath = "posts";
-        List<Map<String, Object>> authorsPosts = queryAuthorsPosts(baseUrl, authorPostsPath, authorId);
-        return Response.ok().entity(new AuthorContent(authorId, authorDetails, authorsPosts)).build();
+    public Response getAnyUser(@PathParam("AUTHOR_ID") Long authorId){
+        AnyUser anyUser = queryAnyUser(authorId);
+        if (anyUser == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        List<AnyUserPost> anyUserPosts = queryAnyUsersPosts(authorId);
+        if (anyUserPosts != null) {
+            anyUser.setPostList(anyUserPosts);
+        }
+
+        if (anyUser == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        return Response.ok().entity(anyUser).build();
     }
 
-    private Map<String, Object> queryRestService(String baseUrl, String path){
-        WebTarget target = ClientBuilder.newClient().target(baseUrl);
-        Response response = target.path(path).request().accept(MediaType.APPLICATION_JSON).get();
-        String asString = response.readEntity(String.class);
-        Jsonb JSONB = JsonbBuilder.create();
-        Map<String, Object> map = (Map<String, Object>) JSONB.fromJson(asString, Object.class);
-        return map;
+    private AnyUser queryAnyUser(Long authorId){
+        WebTarget target = ClientBuilder.newClient().target(HTTP_JSONPLACEHOLDER_TYPICODE_COM);
+        Response response = target.path("users").path(authorId.toString()).request().accept(MediaType.APPLICATION_JSON).get();
+
+        if(response.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
+            String asString = response.readEntity(String.class);
+            Mapper mapper = new MapperBuilder().build();
+            AnyUser anyUser = mapper.readObject(asString, AnyUser.class);
+            return anyUser;
+        }
+        return null;
     }
 
-    private List<Map<String, Object>> queryAuthorsPosts(String baseUrl, String path, Long authorId){
-        WebTarget target = ClientBuilder.newClient().target(baseUrl);
-        Response response = target.path(path).
+    private List<AnyUserPost> queryAnyUsersPosts(Long authorId){
+        WebTarget target = ClientBuilder.newClient().target(HTTP_JSONPLACEHOLDER_TYPICODE_COM);
+        Response response = target.path("posts").
                 queryParam("userId", authorId).
                 request().accept(MediaType.APPLICATION_JSON).get();
-        String asString = response.readEntity(String.class);
-        Jsonb JSONB = JsonbBuilder.create();
-        List<Map<String, Object>> listOfPosts = (List<Map<String, Object>>) JSONB.fromJson(asString, Object.class);
-        return listOfPosts;
+        if(response.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
+            String asString = response.readEntity(String.class);
+            Jsonb jsonb = new JohnzonBuilder().build();
+            List<AnyUserPost> personList = jsonb.fromJson(asString, new ArrayList<AnyUserPost>(){}.getClass().getGenericSuperclass());
+            return personList;
+        }
+        return null;
     }
 
     private void doCompletableFutureStuff() {
