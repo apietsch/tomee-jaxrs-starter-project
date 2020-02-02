@@ -1,9 +1,8 @@
 package be.pengo.tomeeapi;
 
+import org.apache.johnzon.jsonb.JohnzonBuilder;
 import org.apache.johnzon.mapper.Mapper;
 import org.apache.johnzon.mapper.MapperBuilder;
-import org.apache.johnzon.jsonb.JohnzonBuilder;
-
 
 import javax.ejb.Stateless;
 import javax.json.bind.Jsonb;
@@ -17,9 +16,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -34,7 +36,7 @@ public class AnyUserService {
     @Path("anyuser/{userid}")
     @Produces({APPLICATION_JSON})
     public Response getAnyUser(@PathParam("userid") Long userId) {
-        System.out.println(String.format("Service method getAnyUser() lives in Thread %s", Thread.currentThread().getName()));
+        System.out.println(String.format("Service method getAnyUser() lives in Thread: %s", Thread.currentThread().getName()));
         Instant start = Instant.now();
         AnyUser anyUser = queryAnyUser(userId);
         if (anyUser == null) {
@@ -48,7 +50,7 @@ public class AnyUserService {
 
         Instant stop = Instant.now();
         long runtime = Duration.between(start, stop).toMillis();
-        System.out.println("Service Method getAnyUser() took " + runtime + " milliseconds to complete");
+        System.out.println("Service Method getAnyUser() took " + runtime + " milliseconds to complete.");
 
         return Response.ok().entity(anyUser).build();
     }
@@ -57,7 +59,7 @@ public class AnyUserService {
     @Path("asyncanyuser/{userid}")
     @Produces({APPLICATION_JSON})
     public Response getAnyUserAsync(@PathParam("userid") Long userId) {
-        System.out.println(String.format("Service method getAnyUserAsync() lives in Thread %s", Thread.currentThread().getName()));
+        System.out.println(String.format("Service method getAnyUserAsync() lives in Thread: %s", Thread.currentThread().getName()));
         Instant start = Instant.now();
         AnyUser responseAnyUser = null;
         try {
@@ -81,15 +83,17 @@ public class AnyUserService {
                 e.printStackTrace();
                 return null;
             });
+            System.out.println(".. after async processes.");
             responseAnyUser = anyUserFuture.get(10, TimeUnit.SECONDS);
+            System.out.println(".. anyUserFuture.get() finished.");
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            System.out.println("Something went wrong for anyUserFuture CompletableFuture: " + e.getMessage());
+            System.out.println("Something went wrong for anyUserFuture CompletableFuture: ");
             e.printStackTrace();
         }
 
         Instant stop = Instant.now();
         long runtime = Duration.between(start, stop).toMillis();
-        System.out.println("Service Method getAnyUserAsync() took " + runtime / 1000 + " seconds to complete");
+        System.out.println("Service Method getAnyUserAsync() took " + runtime / 1000 + " seconds to complete.");
 
         if (responseAnyUser == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -97,19 +101,27 @@ public class AnyUserService {
         return Response.ok().entity(responseAnyUser).build();
     }
 
-    private AnyUser queryAnyUser(Long authorId) {
-        System.out.println(String.format("Method queryAnyUser() lives in Thread %s", Thread.currentThread().getName()));
+    /**
+     * Query external rest api (jsonplaceholder.typicode.com) and map response to {@link be.pengo.tomeeapi.AnyUser}
+     * For educational reasons, this method has a call to a thread sleep method for an additional delay to finish the request.
+     *
+     * @param userId The user id to query the external api for
+     * @return The AnyUser with some fields populated from the external service json or null if something went wrong
+     * or if there was no external service user with that id.
+     */
+    private AnyUser queryAnyUser(Long userId) {
+        System.out.println(String.format("Method queryAnyUser() lives in Thread: %s", Thread.currentThread().getName()));
         Instant start = Instant.now();
         threadSleepForSeconds(3);
         WebTarget target = ClientBuilder.newClient().target(HTTP_JSONPLACEHOLDER_TYPICODE_COM);
         Response response = target.path("users").
-                path(authorId.toString()).
+                path(userId.toString()).
                 request().
                 accept(MediaType.APPLICATION_JSON).get();
 
         Instant stop = Instant.now();
         long runtime = Duration.between(start, stop).toMillis();
-        System.out.println("Method queryAnyUser() took " + runtime / 1000 + " seconds to complete");
+        System.out.println("Method queryAnyUser() took " + runtime / 1000 + " seconds to complete.");
 
         if (response.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
             String asString = response.readEntity(String.class);
@@ -120,13 +132,19 @@ public class AnyUserService {
         return null;
     }
 
-    private List<AnyUserPost> queryAnyUsersPosts(Long authorId) {
+    /**
+     * Query external rest api (jsonplaceholder.typicode.com) and map response to List of {@link be.pengo.tomeeapi.AnyUserPost}
+     * For educational reasons, this method has a call to a thread sleep method for an additional delay to finish the request.
+     * @param userId The user id to query the external api for
+     * @return A List of {@link be.pengo.tomeeapi.AnyUserPost} or null if there were no posts for the given userid
+     */
+    private List<AnyUserPost> queryAnyUsersPosts(Long userId) {
         System.out.println(String.format("Method queryAnyUsersPosts() lives in Thread %s", Thread.currentThread().getName()));
         Instant start = Instant.now();
         threadSleepForSeconds(3);
         WebTarget target = ClientBuilder.newClient().target(HTTP_JSONPLACEHOLDER_TYPICODE_COM);
         Response response = target.path("posts").
-                queryParam("userId", authorId).
+                queryParam("userId", userId).
                 request().accept(MediaType.APPLICATION_JSON).get();
 
         Instant stop = Instant.now();

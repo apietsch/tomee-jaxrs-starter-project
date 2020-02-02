@@ -34,6 +34,15 @@ import javax.ws.rs.core.Response;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+/**
+ * These test run against a arquillian-tomee-embedded. The test are about calling
+ * two rest endpoints. Each endpoint calls two external rest services.  One in synchronous
+ * (blocking) order. The other endpoint uses CompletableFuture to call the external resource in an
+ * asynchronous way (delegating the work into the ForkJoinPool.commonPool()).
+ * By intentionally extending the time to finish the external calls, one can observe that
+ * the asynchronous tests {@link AnyUserServiceTest#testAsyncAnyUserService()} will finish in
+ * more or less half of the time than {@link AnyUserServiceTest#testAnyUserService()}
+ */
 @RunWith(Arquillian.class)
 public class AnyUserServiceTest extends Assert {
 
@@ -49,7 +58,6 @@ public class AnyUserServiceTest extends Assert {
         assertEquals(Long.valueOf(1), anyUser.getId());
         assertEquals("Leanne Graham", anyUser.getName());
     }
-
 
     @Test
     @InSequence(2)
@@ -106,15 +114,6 @@ public class AnyUserServiceTest extends Assert {
                 get();
     }
 
-    /**
-     * ShrinkWrap is used to create a war file on the fly.
-     *
-     * The API is quite expressive and can build any possible
-     * flavor of war file.  It can quite easily return a rebuilt
-     * war file as well.
-     *
-     * More than one @Deployment method is allowed.
-     */
     @Deployment(testable = false)
     public static WebArchive createDeployment() {
         WebArchive webArchive = ShrinkWrap.create(WebArchive.class)
@@ -124,15 +123,4 @@ public class AnyUserServiceTest extends Assert {
         System.out.println(webArchive.toString(true));
         return webArchive;
     }
-
-    /**
-     * This URL will contain the following URL data
-     *
-     *  - http://<host>:<port>/<webapp>/
-     *
-     * This allows the test itself to be agnostic of server information or even
-     * the name of the webapp
-     *
-     */
-
 }
