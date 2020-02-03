@@ -93,11 +93,11 @@ public class AnyUserService {
                 e.printStackTrace();
                 return null;
             });
-            System.out.println(".. after async processes.");
+            System.out.println(".. after async processes started.");
             responseAnyUser = anyUserFuture.get(10, TimeUnit.SECONDS);
             System.out.println(".. anyUserFuture.get() finished.");
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            System.out.println("Something went wrong for anyUserFuture CompletableFuture: ");
+            System.out.println("Something went wrong for anyUserFuture CompletableFuture:");
             e.printStackTrace();
         }
 

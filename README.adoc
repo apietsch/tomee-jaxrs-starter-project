@@ -1,6 +1,6 @@
-# asynchronous fetch external rest API
+# task: asynchronous fetch external rest API resources, merge and represent
 
-Proper Java Environment:
+Developed in Java Environment:
 ----
 openjdk version "1.8.0_152"
 OpenJDK Runtime Environment (Zulu 8.25.0.1-macosx) (build 1.8.0_152-b16)
@@ -10,7 +10,122 @@ Maven:
 ----
 Apache Maven 3.6.3
 ----
-run tests with
 
-    mvn clean test
+Run and check if everything is green:
+----
+mvn clean tests
+----
 
+This runs test and api requests/responses using an embedded tomee via arquillian.
+
+Run on a real Tomee:
+
+- Download TomEE plus 8.0.1 at http://tomee.apache.org/download-ng.html
+
+Start tomee 
+----
+./bin/catalina.sh start
+----
+and see logs/catalina.out for ports and pathes.
+
+In project dir:
+----
+mvn install -DskipTests
+cp target/async-rs.war apache-tomee-plus-8.0.0/webapps
+----
+
+see log for the pathes:
+----
+...
+03-Feb-2020 12:07:27.978 INFO [Catalina-utility-2] org.apache.openejb.server.cxf.rs.CxfRsHttpListener.logEndpoints               GET http://localhost:38080/async-rs/api/async/anyuser/{userid}      ->      Response getAnyUser(Long)
+03-Feb-2020 12:07:27.978 INFO [Catalina-utility-2] org.apache.openejb.server.cxf.rs.CxfRsHttpListener.logEndpoints               GET http://localhost:38080/async-rs/api/async/asyncanyuser/{userid} ->      Response getAnyUserAsync(Long)
+0
+...
+----
+
+compare response time calling
+----
+http://localhost:38080/async-rs/api/async/asyncanyuser/1
+----
+
+and
+
+----
+http://localhost:8080/async-rs/api/async/anyuser/1
+----
+
+or watch the different execution time and output of the maven test in target/surefire-reports/TEST-be.pengo.tomeeapi.AnyUserServiceTest.xml
+----
+<testcase classname="be.pengo.tomeeapi.AnyUserServiceTest" name="testAnyUserService" time="6.745"/>
+  <testcase classname="be.pengo.tomeeapi.AnyUserServiceTest" name="testAsyncAnyUserService" time="3.165"/>
+----
+
+The later anyuser/1 should take twice the time the asyncanyuser/1 call takes.
+the asynchronous endpoint uses CompletableFutures to call the external jsonplaceholder.typicode.com api in there own threads (mostly in parallel) and also having a timeout of 10 seconds waiting for the external services to response.
+
+If that 10 seconds limit is reach the endpoint will return a 404 Not Found.
+
+It could be that the tests fail because the external endpoints are not reachable or also trigger the timeout.
+
+To really point out the performance gain vs. the logic to achieve quicker responses all methods calling the external resources have
+Thread.sleep() calls:
+----
+...
+ threadSleepForSeconds(3);
+ Response response = target.path("posts").
+ queryParam("userId", userId).
+ request().accept(MediaType.APPLICATION_JSON).get();
+...
+----
+
+While running the app in TomEE or executing the tests, TomEE prints some logging on the console:
+----
+Service method getAnyUser() lives in Thread: http-nio-49995-exec-1
+Method queryAnyUser() lives in Thread: http-nio-49995-exec-1
+Intentional sleep for 3 seconds in Thread: http-nio-49995-exec-1
+Method queryAnyUser() took 3 seconds to complete.
+Method queryAnyUsersPosts() lives in Thread http-nio-49995-exec-1
+Intentional sleep for 3 seconds in Thread: http-nio-49995-exec-1
+Method queryAnyUsersPosts() took 3 seconds to complete
+Service Method getAnyUser() took 6 seconds to complete.
+Service method getAnyUserAsync() lives in Thread: http-nio-49995-exec-2
+Method queryAnyUser() lives in Thread: ForkJoinPool.commonPool-worker-1
+Intentional sleep for 3 seconds in Thread: ForkJoinPool.commonPool-worker-1
+Method queryAnyUsersPosts() lives in Thread ForkJoinPool.commonPool-worker-2
+Intentional sleep for 3 seconds in Thread: ForkJoinPool.commonPool-worker-2
+.. after async processes started.
+Method queryAnyUser() took 3 seconds to complete.
+Method queryAnyUsersPosts() took 3 seconds to complete
+.. anyUserFuture.get() finished.
+Service Method getAnyUserAsync() took 3 seconds to complete.
+Service method getAnyUserAsync() lives in Thread: http-nio-49995-exec-3
+.. after async processes started.
+Method queryAnyUsersPosts() lives in Thread ForkJoinPool.commonPool-worker-1
+Intentional sleep for 3 seconds in Thread: ForkJoinPool.commonPool-worker-1
+Method queryAnyUser() lives in Thread: ForkJoinPool.commonPool-worker-2
+Intentional sleep for 3 seconds in Thread: ForkJoinPool.commonPool-worker-2
+Method queryAnyUser() took 3 seconds to complete.
+Method queryAnyUsersPosts() took 3 seconds to complete
+.. anyUserFuture.get() finished.
+Service Method getAnyUserAsync() took 3 seconds to complete.
+Service method getAnyUserAsync() lives in Thread: http-nio-49995-exec-4
+.. after async processes started.
+Method queryAnyUsersPosts() lives in Thread ForkJoinPool.commonPool-worker-2
+Method queryAnyUser() lives in Thread: ForkJoinPool.commonPool-worker-1
+Intentional sleep for 3 seconds in Thread: ForkJoinPool.commonPool-worker-2
+Intentional sleep for 3 seconds in Thread: ForkJoinPool.commonPool-worker-1
+Method queryAnyUsersPosts() took 3 seconds to complete
+Method queryAnyUser() took 3 seconds to complete.
+.. anyUserFuture.get() finished.
+Service Method getAnyUserAsync() took 3 seconds to complete.
+Service method getAnyUserAsync() lives in Thread: http-nio-49995-exec-5
+.. after async processes started.
+Method queryAnyUser() lives in Thread: ForkJoinPool.commonPool-worker-1
+Method queryAnyUsersPosts() lives in Thread ForkJoinPool.commonPool-worker-2
+Intentional sleep for 3 seconds in Thread: ForkJoinPool.commonPool-worker-1
+Intentional sleep for 3 seconds in Thread: ForkJoinPool.commonPool-worker-2
+Method queryAnyUser() took 3 seconds to complete.
+Method queryAnyUsersPosts() took 3 seconds to complete
+.. anyUserFuture.get() finished.
+Service Method getAnyUserAsync() took 3 seconds to complete.
+----

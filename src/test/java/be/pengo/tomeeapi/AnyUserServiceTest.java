@@ -118,7 +118,6 @@ public class AnyUserServiceTest extends Assert {
     public static WebArchive createDeployment() {
         WebArchive webArchive = ShrinkWrap.create(WebArchive.class)
                 .addAsManifestResource("test-persistence.xml", "persistence.xml")
-                .addAsManifestResource("log4j.properties", "log4j.properties")
                 .addPackages(true, new String[]{"be.pengo.tomeeapi"})
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
         System.out.println(webArchive.toString(true));
