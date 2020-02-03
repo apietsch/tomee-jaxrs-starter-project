@@ -94,7 +94,7 @@ public class AnyUserService {
                 return null;
             });
             System.out.println(".. after async processes started.");
-            responseAnyUser = anyUserFuture.get(10, TimeUnit.SECONDS);
+            responseAnyUser = anyUserFuture.get(30, TimeUnit.SECONDS);
             System.out.println(".. anyUserFuture.get() finished.");
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             System.out.println("Something went wrong for anyUserFuture CompletableFuture:");

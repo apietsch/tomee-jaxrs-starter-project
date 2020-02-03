@@ -63,7 +63,11 @@ or watch the different execution time and output of the maven test in target/sur
 The later anyuser/1 should take twice the time the asyncanyuser/1 call takes.
 the asynchronous endpoint uses CompletableFutures to call the external jsonplaceholder.typicode.com api in there own threads (mostly in parallel) and also having a timeout of 10 seconds waiting for the external services to response.
 
-If that 10 seconds limit is reach the endpoint will return a 404 Not Found.
+If that 30 seconds limit is reach the endpoint will return a 404 Not Found.
+See
+----
+be/pengo/tomeeapi/AnyUserService.java:97
+----
 
 It could be that the tests fail because the external endpoints are not reachable or also trigger the timeout.
 
@@ -128,4 +132,20 @@ Method queryAnyUser() took 3 seconds to complete.
 Method queryAnyUsersPosts() took 3 seconds to complete
 .. anyUserFuture.get() finished.
 Service Method getAnyUserAsync() took 3 seconds to complete.
+----
+
+Merged json example:
+----
+{
+"id": 1,
+"name": "Leanne Graham",
+"postList": [
+{
+"body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto",
+"id": 1,
+"title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+"userId": 1
+},
+...
+
 ----
