@@ -134,7 +134,7 @@ Method queryAnyUsersPosts() took 3 seconds to complete
 Service Method getAnyUserAsync() took 3 seconds to complete.
 ----
 
-Merged json example:
+Merged json example (merged content from external endpoints):
 ----
 {
 "id": 1,
