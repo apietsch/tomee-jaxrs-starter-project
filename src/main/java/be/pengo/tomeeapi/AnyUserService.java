@@ -84,7 +84,9 @@ public class AnyUserService {
                                         return null;
                                     }),
                             (anyUser, anyUserPosts) -> {
-                                anyUser.setPostList(anyUserPosts);
+                                if (anyUser != null) {
+                                    anyUser.setPostList(anyUserPosts);
+                                }
                                 return anyUser;
                             }).exceptionally(e -> {
                 System.out.println("An exception happened in combine: " + e.getMessage());
@@ -142,6 +144,7 @@ public class AnyUserService {
     /**
      * Query external rest api (jsonplaceholder.typicode.com) and map response to List of {@link be.pengo.tomeeapi.AnyUserPost}
      * For educational reasons, this method has a call to a thread sleep method for an additional delay to finish the request.
+     *
      * @param userId The user id to query the external api for
      * @return A List of {@link be.pengo.tomeeapi.AnyUserPost} or null if there were no posts for the given userid
      */
