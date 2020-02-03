@@ -2,7 +2,7 @@
 <tomee>
     <Resource id="jdbc/my_h2_db" type="javax.sql.DataSource">
         JdbcDriver = org.h2.Driver
-        JdbcUrl = jdbc:h2:file:~/tomee-jaxrs-starter-project_h2_db
+        JdbcUrl = jdbc:h2:file:./tomee-jaxrs-starter-project_h2_db
         UserName = sa
         Password = sa
         jtaManaged = true

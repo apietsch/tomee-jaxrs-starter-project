@@ -3,8 +3,6 @@ package be.pengo.tomeeapi;
 import org.apache.johnzon.mapper.JohnzonAny;
 import org.apache.johnzon.mapper.JohnzonIgnore;
 
-import javax.json.bind.annotation.JsonbNillable;
-import javax.json.bind.annotation.JsonbProperty;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +15,7 @@ public class AnyUser {
     private List<AnyUserPost> postList = Collections.emptyList();
 
     @JohnzonIgnore
-    private Map<String, Object> unknownFields = new TreeMap<String, Object>();
+    private Map<String, Object> unknownFields = new TreeMap<>();
 
     public String getName() {
         return name;
