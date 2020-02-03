@@ -38,19 +38,23 @@ public class AnyUserService {
     public Response getAnyUser(@PathParam("userid") Long userId) {
         System.out.println(String.format("Service method getAnyUser() lives in Thread: %s", Thread.currentThread().getName()));
         Instant start = Instant.now();
-        AnyUser anyUser = queryAnyUser(userId);
+        WebTarget target = ClientBuilder.newClient().target(HTTP_JSONPLACEHOLDER_TYPICODE_COM);
+        Mapper mapper = new MapperBuilder().build();
+        Jsonb jsonb = new JohnzonBuilder().build();
+
+        AnyUser anyUser = queryAnyUser(target, mapper, userId);
         if (anyUser == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
 
-        List<AnyUserPost> anyUserPosts = queryAnyUsersPosts(userId);
+        List<AnyUserPost> anyUserPosts = queryAnyUsersPosts(target, jsonb, userId);
         if (anyUserPosts != null) {
             anyUser.setPostList(anyUserPosts);
         }
 
         Instant stop = Instant.now();
         long runtime = Duration.between(start, stop).toMillis();
-        System.out.println("Service Method getAnyUser() took " + runtime + " milliseconds to complete.");
+        System.out.println("Service Method getAnyUser() took " + runtime / 1000 + " seconds to complete.");
 
         return Response.ok().entity(anyUser).build();
     }
@@ -62,14 +66,18 @@ public class AnyUserService {
         System.out.println(String.format("Service method getAnyUserAsync() lives in Thread: %s", Thread.currentThread().getName()));
         Instant start = Instant.now();
         AnyUser responseAnyUser = null;
+        WebTarget target = ClientBuilder.newClient().target(HTTP_JSONPLACEHOLDER_TYPICODE_COM);
+        Mapper mapper = new MapperBuilder().build();
+        Jsonb jsonb = new JohnzonBuilder().build();
+
         try {
-            CompletableFuture<AnyUser> anyUserFuture = supplyAsync(() -> queryAnyUser(userId)).
+            CompletableFuture<AnyUser> anyUserFuture = supplyAsync(() -> queryAnyUser(target, mapper, userId)).
                     exceptionally(e -> {
                         System.out.println("An exception happened in queryAnyUser: " + e.getMessage());
                         e.printStackTrace();
                         return null;
                     }).
-                    thenCombine(supplyAsync(() -> queryAnyUsersPosts(userId)).
+                    thenCombine(supplyAsync(() -> queryAnyUsersPosts(target, jsonb, userId)).
                                     exceptionally(e -> {
                                         System.out.println("An exception happened in queryAnyUsersPosts: " + e.getMessage());
                                         e.printStackTrace();
@@ -109,11 +117,11 @@ public class AnyUserService {
      * @return The AnyUser with some fields populated from the external service json or null if something went wrong
      * or if there was no external service user with that id.
      */
-    private AnyUser queryAnyUser(Long userId) {
+    private AnyUser queryAnyUser(WebTarget target, Mapper mapper, Long userId) {
         System.out.println(String.format("Method queryAnyUser() lives in Thread: %s", Thread.currentThread().getName()));
         Instant start = Instant.now();
         threadSleepForSeconds(3);
-        WebTarget target = ClientBuilder.newClient().target(HTTP_JSONPLACEHOLDER_TYPICODE_COM);
+
         Response response = target.path("users").
                 path(userId.toString()).
                 request().
@@ -125,7 +133,6 @@ public class AnyUserService {
 
         if (response.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
             String asString = response.readEntity(String.class);
-            Mapper mapper = new MapperBuilder().build();
             return mapper.readObject(asString, AnyUser.class);
         }
 
@@ -138,11 +145,10 @@ public class AnyUserService {
      * @param userId The user id to query the external api for
      * @return A List of {@link be.pengo.tomeeapi.AnyUserPost} or null if there were no posts for the given userid
      */
-    private List<AnyUserPost> queryAnyUsersPosts(Long userId) {
+    private List<AnyUserPost> queryAnyUsersPosts(WebTarget target, Jsonb jsonb, Long userId) {
         System.out.println(String.format("Method queryAnyUsersPosts() lives in Thread %s", Thread.currentThread().getName()));
         Instant start = Instant.now();
         threadSleepForSeconds(3);
-        WebTarget target = ClientBuilder.newClient().target(HTTP_JSONPLACEHOLDER_TYPICODE_COM);
         Response response = target.path("posts").
                 queryParam("userId", userId).
                 request().accept(MediaType.APPLICATION_JSON).get();
@@ -153,7 +159,6 @@ public class AnyUserService {
 
         if (response.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
             String asString = response.readEntity(String.class);
-            Jsonb jsonb = new JohnzonBuilder().build();
             return jsonb.fromJson(asString,
                     new ArrayList<AnyUserPost>() {
                     }.getClass().getGenericSuperclass());
